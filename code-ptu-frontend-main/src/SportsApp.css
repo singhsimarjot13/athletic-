@@ -1,0 +1,159 @@
+/* General styles */
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f4f4f4;
+}
+
+/* Navbar */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  background: #0c2861;
+  color: white;
+  min-height: 60px;
+}
+
+.college-name {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.nav-buttons {
+  display: flex;
+  gap: 30px;
+}
+
+.nav-buttons button {
+  padding: 8px 16px;
+  border: none;
+  cursor: pointer;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: transform 0.2s ease-in-out;
+}
+
+.nav-buttons button:hover {
+  transform: scale(1.1);
+}
+
+.support-btn {
+  background: #ffcc00;
+}
+
+.logout-btn {
+  background: #ff4444;
+  color: white;
+}
+
+/* Background section */
+.background {
+  background: url("/bg-image.jpg") center/cover no-repeat;
+  width: 99vw; /* Full width of the viewport */
+  height: 40vh; /* Adjust height as needed */
+  min-height: 250px; /* Prevents it from being too small */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.welcome-text {
+  font-size: 3rem;
+  color: white;
+  font-weight: bold;
+  text-shadow: 3px 3px 10px rgba(0, 0, 0, 0.7);
+  text-align: center;
+}
+.event-title{
+  font-size: 2rem;
+  font-weight: bold;
+  padding-bottom: 10px;
+}
+
+/* Events Section */
+.events-container {
+  margin-left: 100px;
+  margin-right: 100px;
+  padding: 30px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); /* Always 3 columns */
+  gap: 50px;
+  justify-content: center;
+}
+
+/* Event Cards */
+.event-card {
+  background: rgb(241, 240, 240);
+  min-height: 300px;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  transition: transform 0.2s ease-in-out;
+}
+.dropdown{
+  font-size: 1rem;
+}
+
+
+.event-card:hover {
+  transform: scale(1.05);
+}
+
+.event-card h3 {
+  font-size: 2rem;
+  margin-bottom: 15px;
+}
+
+.event-card select {
+  width: 100%;
+  padding: 12px;
+  font-size: 1.2rem;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+/* Athlete Form */
+.athlete-form {
+  margin-top: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.athlete-form input {
+  width: 100%;
+  padding: 10px;
+  font-size: 1.2rem;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+.athlete-form input[type="file"] {
+  border: none;
+  background: #f4f4f4;
+}
+/* Submit Button */
+.submit-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.submit-btn {
+  padding: 15px 30px;
+  font-size: 1.5rem;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.submit-btn:hover {
+  background-color: #218838;
+}
