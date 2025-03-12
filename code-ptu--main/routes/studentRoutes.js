@@ -8,8 +8,9 @@ const RelayStudent = require("../models/RelayStudent");
 const MaleEventLock = require("../models/eventLock");
 const assignJerseyNumber = require("../helpers/assignJerseyNumber");
 
-
 const router = express.Router();
+
+// ✅ Middleware to check session auth
 const authMiddleware = (req, res, next) => {
   if (req.session.collegeName && req.session.username) {
     next();
@@ -18,6 +19,78 @@ const authMiddleware = (req, res, next) => {
     res.status(401).json({ message: 'Unauthorized' });
   }
 };
+
+// ✅ Middleware to check if URN already registered in 2 events
+const urnValidationMiddleware = async (req, res, next) => {
+  try {
+    const {
+      student1URN,
+      student2URN
+    } = req.body;
+
+    const urnsToCheck = [];
+    if (student1URN) urnsToCheck.push(student1URN);
+    if (student2URN) urnsToCheck.push(student2URN);
+
+    for (const urn of urnsToCheck) {
+      // Count registrations in individual events
+      const individualCount = await Student.countDocuments({
+        $or: [
+          { "students.student1.urn": urn },
+          { "students.student2.urn": urn }
+        ]
+      });
+
+      // Count registrations in relay events
+      const relayCount = await RelayStudent.countDocuments({
+        "students.urn": urn
+      });
+
+      const totalEvents = individualCount + relayCount;
+
+      console.log(`URN ${urn} is already registered in ${totalEvents} events.`);
+
+      if (totalEvents >= 2) {
+        return res.status(400).json({
+          success: false,
+          message: `URN ${urn} is already registered in ${totalEvents} event(s). Max 2 allowed.`
+        });
+      }
+    }
+
+    next();
+  } catch (error) {
+    console.error("❌ URN Validation Error:", error);
+    res.status(500).json({ success: false, message: "Server error during URN validation." });
+  }
+};
+
+// ✅ GET: Registration count for a URN
+router.get("/registration-count/:urn", async (req, res) => {
+  const { urn } = req.params;
+
+  try {
+    const individualCount = await Student.countDocuments({
+      $or: [
+        { "students.student1.urn": urn },
+        { "students.student2.urn": urn },
+      ],
+    });
+
+    const relayCount = await RelayStudent.countDocuments({
+      "students.urn": urn,
+    });
+
+    const total = individualCount + relayCount;
+
+    res.json({ count: total });
+  } catch (error) {
+    console.error("Error fetching registration count:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ✅ GET: Event lock status for a college
 router.get("/event-status/:event", authMiddleware, async (req, res) => {
   try {
     const { event } = req.params;
@@ -36,22 +109,19 @@ router.get("/event-status/:event", authMiddleware, async (req, res) => {
   }
 });
 
+// ✅ GET: List students based on event/college
 router.get("/students", async (req, res) => {
   try {
     const { event, collegeName } = req.query;
     let filter = {};
 
-    // Filter by event
     if (event) {
       filter.event = event;
     }
 
-    // Filter by college name (Top-Level Field)
     if (collegeName) {
-      filter.collegeName = { $regex: collegeName, $options: "i" }; // Case-insensitive search
+      filter.collegeName = { $regex: collegeName, $options: "i" };
     }
-
-    console.log("Filter Query:", filter); // Debugging
 
     const students = await Student.find(filter);
 
@@ -62,7 +132,7 @@ router.get("/students", async (req, res) => {
   }
 });
 
-
+// ✅ GET: Export students and relay students to Excel
 router.get("/export", async (req, res) => {
   try {
     const { event, collegeName } = req.query;
@@ -71,12 +141,8 @@ router.get("/export", async (req, res) => {
     if (event) query.event = event;
     if (collegeName) query.collegeName = collegeName;
 
-    // Fetch data from both collections
     const students = await Student.find(query);
     const relayStudents = await RelayStudent.find(query);
-
-    console.log("Students Data:", students);
-    console.log("Relay Students Data:", relayStudents);
 
     const allStudents = [
       ...students.map((entry) => ({
@@ -102,21 +168,16 @@ router.get("/export", async (req, res) => {
       ),
     ];
 
-    console.log("Formatted Data for Excel:", allStudents);
-
     if (allStudents.length === 0) {
       return res.status(404).json({ success: false, message: "No data found" });
     }
 
-    // Convert JSON to Excel
     const ws = XLSX.utils.json_to_sheet(allStudents);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Students");
 
-    // Convert workbook to buffer
     const buffer = XLSX.write(wb, { bookType: "xlsx", type: "buffer" });
 
-    // Set response headers
     res.setHeader("Content-Disposition", 'attachment; filename="students_data.xlsx"');
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 
@@ -127,12 +188,7 @@ router.get("/export", async (req, res) => {
   }
 });
 
-
-
-
-
-
-// Cloudinary storage configuration
+// ✅ Multer + Cloudinary Setup
 const storage = new CloudinaryStorage({
   cloudinary,
   params: {
@@ -147,7 +203,8 @@ const uploadFields = upload.fields([
   { name: "student2Image", maxCount: 1 },
 ]);
 
-router.post("/register", authMiddleware, uploadFields, async (req, res) => {
+// ✅ POST: Register students for an event
+router.post("/register", authMiddleware, urnValidationMiddleware, uploadFields, async (req, res) => {
   try {
     const collegeName = req.session.collegeName;
     const {
@@ -158,13 +215,11 @@ router.post("/register", authMiddleware, uploadFields, async (req, res) => {
 
     const event = events;
 
-    // 🔐 Check if the event is already locked for this college
     let lockDoc = await MaleEventLock.findOne({ collegeName });
     if (lockDoc && lockDoc.eventsLocked[event]) {
       return res.status(403).json({ success: false, message: "Event is already locked for this college." });
     }
 
-    // Check if already registered
     const existingEntry = await Student.findOne({ collegeName, event });
     if (existingEntry) {
       return res.status(400).json({ success: false, message: "Already registered for this event." });
@@ -173,19 +228,11 @@ router.post("/register", authMiddleware, uploadFields, async (req, res) => {
     const student1Image = req.files?.student1Image?.[0]?.path || "";
     const student2Image = req.files?.student2Image?.[0]?.path || "";
 
-    // ✅ URN-based Jersey Number Allotment
     const student1JerseyNumber = await assignJerseyNumber(student1URN, student1Name, collegeName);
     let student2JerseyNumber = null;
-    
+
     if (student2URN) {
       student2JerseyNumber = await assignJerseyNumber(student2URN, student2Name, collegeName);
-    }
-
-    // 📝 Logs for debugging jersey numbers
-    console.log("✅ Jersey Allotment Info (URN Based):");
-    console.log(`➡️  Student 1 (URN: ${student1URN}) Jersey Number: ${student1JerseyNumber}`);
-    if (student2URN) {
-      console.log(`➡️  Student 2 (URN: ${student2URN}) Jersey Number: ${student2JerseyNumber}`);
     }
 
     const newStudent = new Student({
@@ -200,7 +247,7 @@ router.post("/register", authMiddleware, uploadFields, async (req, res) => {
           age: student1age,
           phoneNumber: student1PhoneNumber,
           image: student1Image,
-          jerseyNumber: student1JerseyNumber, // 🎽 URN-based Jersey Number
+          jerseyNumber: student1JerseyNumber,
         },
       },
     });
@@ -214,13 +261,12 @@ router.post("/register", authMiddleware, uploadFields, async (req, res) => {
         age: student2age,
         phoneNumber: student2PhoneNumber,
         image: student2Image,
-        jerseyNumber: student2JerseyNumber, // 🎽 URN-based Jersey Number
+        jerseyNumber: student2JerseyNumber,
       };
     }
 
     await newStudent.save();
-    
-    // 🔐 Lock the event after successful registration
+
     if (!lockDoc) {
       await MaleEventLock.create({
         collegeName,
@@ -245,8 +291,5 @@ router.post("/register", authMiddleware, uploadFields, async (req, res) => {
     res.status(500).json({ success: false, message: "Server Error" });
   }
 });
-
-
-
 
 module.exports = router;

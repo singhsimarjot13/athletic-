@@ -29,15 +29,37 @@ const storage = new CloudinaryStorage({
 });
 
 const upload = multer({ storage });
-
-// ✅ Upload fields for 4 students' ID Cards
 const uploadFields = upload.fields([
   { name: "student1Image", maxCount: 1 },
   { name: "student2Image", maxCount: 1 },
   { name: "student3Image", maxCount: 1 },
   { name: "student4Image", maxCount: 1 },
 ]);
+router.get("/check-urn/:urn", async (req, res) => {
+  try {
+    const { urn } = req.params;
 
+    // Check if this URN exists in any registered relay event
+    const existing = await RelayStudent.findOne({
+      "students.urn": urn,
+    });
+
+    if (existing) {
+      return res.json({
+        exists: true,
+        event: existing.event,
+        college: existing.collegeName,
+      });
+    }
+
+    res.json({ exists: false });
+  } catch (error) {
+    console.error("Error checking URN:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+module.exports = router;
 // ✅ GET Relay Event Lock Status
 router.get("/relay-status/:event", authMiddleware, async (req, res) => {
   try {
@@ -60,7 +82,7 @@ router.get("/relay-status/:event", authMiddleware, async (req, res) => {
 // ✅ POST Register Relay Team (Single Team per Event)
 
 
-router.post("/register", authMiddleware, uploadFields, async (req, res) => {
+router.post("/register", authMiddleware, uploadFields,async (req, res) => {
   try {
     console.log("REQ BODY ===>", req.body);
     console.log("REQ FILES ===>", req.files);

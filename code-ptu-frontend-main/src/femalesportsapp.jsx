@@ -6,6 +6,7 @@ import axios from "axios";
 function SportsAppfemale() {
   const [collegeName, setCollegeName] = useState("Loading...");
   const [athleteData, setAthleteData] = useState({});
+  const [urnWarnings, setUrnWarnings] = useState({});
   const [isLocked, setIsLocked] = useState(false);
   const [currentEventIndex, setCurrentEventIndex] = useState(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -75,11 +76,9 @@ function SportsAppfemale() {
       }
     }
 
-    // All events locked
     setIsSubmitted(true);
   };
 
-  // Runs when current event changes
   useEffect(() => {
     if (!currentEvent) {
       setIsSubmitted(true);
@@ -108,18 +107,6 @@ function SportsAppfemale() {
 
     checkCurrentEventLock();
   }, [currentEvent]);
-
-  const handleInputChange = (eventName, studentKey, field, value) => {
-    setAthleteData((prev) => {
-      const newData = { ...prev };
-      if (!newData[eventName]) newData[eventName] = {};
-      newData[eventName][studentKey] = {
-        ...newData[eventName][studentKey],
-        [field]: value,
-      };
-      return newData;
-    });
-  };
 
   const validateFields = (student1) => {
     if (
@@ -155,6 +142,83 @@ function SportsAppfemale() {
     return true;
   };
 
+  const checkUrnRegistrationCount = async (urn, studentKey) => {
+    if (!urn) {
+      setUrnWarnings((prev) => ({ ...prev, [studentKey]: "" }));
+      return;
+    }
+
+    try {
+      const res = await axios.get(
+        `http://localhost:5000/student/registration-count/${urn}`,
+        { withCredentials: true }
+      );
+
+      if (res.data.count >= 2) {
+        setUrnWarnings((prev) => ({
+          ...prev,
+          [studentKey]: `URN ${urn} is already registered in ${res.data.count} events.`,
+        }));
+      } else {
+        setUrnWarnings((prev) => ({ ...prev, [studentKey]: "" }));
+      }
+    } catch (err) {
+      console.error("URN count check error:", err);
+    }
+  };
+
+  const checkSameUrn = (student1Urn, student2Urn) => {
+    if (student1Urn && student2Urn && student1Urn === student2Urn) {
+      setUrnWarnings((prev) => ({
+        ...prev,
+        sameUrn: "Student 1 and Student 2 cannot have the same URN!",
+      }));
+    } else {
+      setUrnWarnings((prev) => {
+        const { sameUrn, ...rest } = prev;
+        return rest;
+      });
+    }
+  };
+
+  const handleInputChange = (eventName, studentKey, field, value) => {
+    setAthleteData((prev) => {
+      const newData = { ...prev };
+      if (!newData[eventName]) newData[eventName] = {};
+      newData[eventName][studentKey] = {
+        ...newData[eventName][studentKey],
+        [field]: value,
+      };
+      return newData;
+    });
+
+    if (field === "urn") {
+      checkUrnRegistrationCount(value, studentKey);
+
+      const otherStudentKey = studentKey === "student1" ? "student2" : "student1";
+      const currentStudentUrn = value;
+      const otherStudentUrn =
+        athleteData[eventName]?.[otherStudentKey]?.urn || "";
+
+      checkSameUrn(
+        studentKey === "student1" ? currentStudentUrn : otherStudentUrn,
+        studentKey === "student2" ? currentStudentUrn : otherStudentUrn
+      );
+    }
+  };
+
+  const isStudentFilled = (student) => {
+    return (
+      student.name ||
+      student.urn ||
+      student.gmail ||
+      student.fatherName ||
+      student.dob ||
+      student.phoneNumber ||
+      student.idCard
+    );
+  };
+
   const handleSubmit = async () => {
     if (isLocked) {
       alert("This event is locked. Moving to the next event...");
@@ -163,23 +227,28 @@ function SportsAppfemale() {
       }, 2000);
       return;
     }
+
     const currentEvent = events[currentEventIndex];
     const student1 = athleteData[currentEvent]?.student1 || {};
     const student2 = athleteData[currentEvent]?.student2 || {};
 
-    // Validate Student 1
+    if (urnWarnings.student1 || urnWarnings.student2 || urnWarnings.sameUrn) {
+      alert("Please fix URN registration issues before submitting.");
+      return;
+    }
+
     if (!validateFields(student1)) return;
 
-    // Validate Student 2 only if URN is entered
-    if (student2.urn && !validateFields(student2)) return;
+    if (isStudentFilled(student2)) {
+      if (!validateFields(student2)) return;
+    }
 
-    // Calculate age from DOB
     const calculateAge = (dob) => {
       if (!dob) return "";
       const birthDate = new Date(dob);
       const currentDate = new Date();
       let age = currentDate.getFullYear() - birthDate.getFullYear();
-      // Adjust age if birthday hasn't occurred yet this year
+
       if (
         currentDate.getMonth() < birthDate.getMonth() ||
         (currentDate.getMonth() === birthDate.getMonth() &&
@@ -187,6 +256,7 @@ function SportsAppfemale() {
       ) {
         age--;
       }
+
       return age;
     };
 
@@ -200,7 +270,6 @@ function SportsAppfemale() {
     formData.append("student1age", calculateAge(student1.dob));
     formData.append("student1PhoneNumber", student1.phoneNumber);
     formData.append("student1Image", student1.idCard);
-  
 
     if (student2.urn) {
       formData.append("student2Name", student2.name);
@@ -286,7 +355,7 @@ function SportsAppfemale() {
                     placeholder="Name"
                     onChange={(e) =>
                       handleInputChange(
-                        events[currentEventIndex],
+                        currentEvent,
                         "student1",
                         "name",
                         e.target.value
@@ -298,19 +367,23 @@ function SportsAppfemale() {
                     placeholder="URN"
                     onChange={(e) =>
                       handleInputChange(
-                        events[currentEventIndex],
+                        currentEvent,
                         "student1",
                         "urn",
                         e.target.value
                       )
                     }
                   />
+                  {urnWarnings.student1 && (
+                    <p style={{ color: "red" }}>{urnWarnings.student1}</p>
+                  )}
+
                   <input
                     type="email"
                     placeholder="Gmail"
                     onChange={(e) =>
                       handleInputChange(
-                        events[currentEventIndex],
+                        currentEvent,
                         "student1",
                         "gmail",
                         e.target.value
@@ -322,7 +395,7 @@ function SportsAppfemale() {
                     placeholder="Father's Name"
                     onChange={(e) =>
                       handleInputChange(
-                        events[currentEventIndex],
+                        currentEvent,
                         "student1",
                         "fatherName",
                         e.target.value
@@ -331,10 +404,9 @@ function SportsAppfemale() {
                   />
                   <input
                     type="date"
-                    placeholder="Date of Birth"
                     onChange={(e) =>
                       handleInputChange(
-                        events[currentEventIndex],
+                        currentEvent,
                         "student1",
                         "dob",
                         e.target.value
@@ -346,7 +418,7 @@ function SportsAppfemale() {
                     placeholder="Phone Number"
                     onChange={(e) =>
                       handleInputChange(
-                        events[currentEventIndex],
+                        currentEvent,
                         "student1",
                         "phoneNumber",
                         e.target.value
@@ -358,7 +430,7 @@ function SportsAppfemale() {
                     accept="image/*"
                     onChange={(e) =>
                       handleInputChange(
-                        events[currentEventIndex],
+                        currentEvent,
                         "student1",
                         "idCard",
                         e.target.files[0]
@@ -372,7 +444,7 @@ function SportsAppfemale() {
                     placeholder="Name"
                     onChange={(e) =>
                       handleInputChange(
-                        events[currentEventIndex],
+                        currentEvent,
                         "student2",
                         "name",
                         e.target.value
@@ -384,16 +456,82 @@ function SportsAppfemale() {
                     placeholder="URN"
                     onChange={(e) =>
                       handleInputChange(
-                        events[currentEventIndex],
+                        currentEvent,
                         "student2",
                         "urn",
                         e.target.value
                       )
                     }
                   />
+                  {urnWarnings.student2 && (
+                    <p style={{ color: "red" }}>{urnWarnings.student2}</p>
+                  )}
+
+                  <input
+                    type="email"
+                    placeholder="Gmail"
+                    onChange={(e) =>
+                      handleInputChange(
+                        currentEvent,
+                        "student2",
+                        "gmail",
+                        e.target.value
+                      )
+                    }
+                  />
+                  <input
+                    type="text"
+                    placeholder="Father's Name"
+                    onChange={(e) =>
+                      handleInputChange(
+                        currentEvent,
+                        "student2",
+                        "fatherName",
+                        e.target.value
+                      )
+                    }
+                  />
+                  <input
+                    type="date"
+                    onChange={(e) =>
+                      handleInputChange(
+                        currentEvent,
+                        "student2",
+                        "dob",
+                        e.target.value
+                      )
+                    }
+                  />
+                  <input
+                    type="tel"
+                    placeholder="Phone Number"
+                    onChange={(e) =>
+                      handleInputChange(
+                        currentEvent,
+                        "student2",
+                        "phoneNumber",
+                        e.target.value
+                      )
+                    }
+                  />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) =>
+                      handleInputChange(
+                        currentEvent,
+                        "student2",
+                        "idCard",
+                        e.target.files[0]
+                      )
+                    }
+                  />
+
+                  {urnWarnings.sameUrn && (
+                    <p style={{ color: "red" }}>{urnWarnings.sameUrn}</p>
+                  )}
                 </div>
 
-                {/* Buttons */}
                 <button className="skip-btn" onClick={handleNext}>
                   Skip & Next
                 </button>

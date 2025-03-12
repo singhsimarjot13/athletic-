@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios"; // Added axios
-import "./SportsApp.css"; // Same styling as SportsApp
+import axios from "axios";
+import "./SportsApp.css";
 
 function Relayfemale() {
   const [collegeName, setCollegeName] = useState("Loading...");
@@ -9,6 +9,7 @@ function Relayfemale() {
   const [currentEventIndex, setCurrentEventIndex] = useState(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
+  const [urnErrors, setUrnErrors] = useState({});
 
   const navigate = useNavigate();
 
@@ -16,7 +17,6 @@ function Relayfemale() {
   const relayEvents = femaleRelayEvents;
   const currentRelayEvent = relayEvents[currentEventIndex];
 
-  // Fetch college info
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
@@ -29,6 +29,7 @@ function Relayfemale() {
           navigate("/");
         }
       } catch (err) {
+        console.log(err);
         navigate("/");
       }
     };
@@ -36,7 +37,6 @@ function Relayfemale() {
     fetchUserInfo();
   }, [navigate]);
 
-  // Logout handler
   const handleLogout = async () => {
     try {
       await axios.get("http://localhost:5000/logout", {
@@ -48,7 +48,6 @@ function Relayfemale() {
     }
   };
 
-  // Check lock status for each event
   const goToNextUnlockedEvent = async () => {
     let nextIndex = currentEventIndex + 1;
 
@@ -73,11 +72,9 @@ function Relayfemale() {
       }
     }
 
-    // All events locked
     setIsSubmitted(true);
   };
 
-  // Runs when current event changes
   useEffect(() => {
     if (!currentRelayEvent) {
       setIsSubmitted(true);
@@ -107,7 +104,7 @@ function Relayfemale() {
     checkCurrentEventLock();
   }, [currentRelayEvent]);
 
-  const handleInputChange = (eventName, studentKey, field, value) => {
+  const handleInputChange = async (eventName, studentKey, field, value) => {
     setRelayData((prev) => {
       const newData = { ...prev };
       if (!newData[eventName]) newData[eventName] = {};
@@ -117,6 +114,44 @@ function Relayfemale() {
       };
       return newData;
     });
+
+    if (field === "urn") {
+      const currentEventData = relayData[eventName] || {};
+      const urnsInForm = Object.keys(currentEventData).map(
+        (key) => key !== studentKey && currentEventData[key]?.urn
+      ).filter(Boolean);
+
+      const isDuplicateInForm = urnsInForm.includes(value);
+
+      if (isDuplicateInForm) {
+        setUrnErrors((prev) => ({
+          ...prev,
+          [studentKey]: `URN ${value} is duplicated within this form.`,
+        }));
+        return;
+      }
+
+      try {
+        const res = await axios.get(
+          `http://localhost:5000/relay/check-urn/${value}`,
+          { withCredentials: true }
+        );
+
+        if (res.data.exists) {
+          setUrnErrors((prev) => ({
+            ...prev,
+            [studentKey]: `URN ${value} is already registered in ${res.data.event} by ${res.data.college}.`,
+          }));
+        } else {
+          setUrnErrors((prev) => ({
+            ...prev,
+            [studentKey]: "",
+          }));
+        }
+      } catch (err) {
+        console.error("Error checking URN:", err);
+      }
+    }
   };
 
   const validateFields = (student) => {
@@ -156,13 +191,24 @@ function Relayfemale() {
   const handleSubmit = async () => {
     if (isLocked) {
       alert("This event is locked. You cannot register again.");
+      setTimeout(() => {
+        goToNextUnlockedEvent();
+      }, 2000);
+      return;
+    }
+
+    const hasUrnErrors = Object.values(urnErrors).some(
+      (error) => error && error.length > 0
+    );
+
+    if (hasUrnErrors) {
+      alert("One or more URNs are incorrect or duplicated. Please fix them before submitting.");
       return;
     }
 
     const currentRelayEvent = relayEvents[currentEventIndex];
     const eventData = relayData[currentRelayEvent] || {};
 
-    // Validate all 4 students
     for (let i = 1; i <= 4; i++) {
       const student = eventData[`student${i}`] || {};
       if (!validateFields(student)) return;
@@ -201,7 +247,7 @@ function Relayfemale() {
     }
 
     try {
-      const res = await axios.post(
+      const response = await axios.post(
         "http://localhost:5000/relay/register",
         formData,
         {
@@ -209,11 +255,13 @@ function Relayfemale() {
         }
       );
 
-      if (res.data.success) {
-        alert(res.data.message || "Relay Registration Successful!");
-        handleNext();
+      const result = response.data;
+
+      if (result.success) {
+        alert(result.message || "Relay Registration Successful!");
+        goToNextUnlockedEvent();
       } else {
-        alert(res.data.message || "Relay Registration failed. Please try again.");
+        alert(result.message || "Relay Registration failed. Please try again.");
       }
     } catch (error) {
       console.error("Error submitting relay data:", error);
@@ -266,94 +314,102 @@ function Relayfemale() {
             ) : (
               <>
                 <div className="athlete-form">
-                  {[1, 2, 3, 4].map((num) => (
-                    <div key={num} className="student-form">
-                      <h4>Student {num}</h4>
-                      <input
-                        type="text"
-                        placeholder="Name"
-                        onChange={(e) =>
-                          handleInputChange(
-                            relayEvents[currentEventIndex],
-                            `student${num}`,
-                            "name",
-                            e.target.value
-                          )
-                        }
-                      />
-                      <input
-                        type="text"
-                        placeholder="URN"
-                        onChange={(e) =>
-                          handleInputChange(
-                            relayEvents[currentEventIndex],
-                            `student${num}`,
-                            "urn",
-                            e.target.value
-                          )
-                        }
-                      />
-                      <input
-                        type="email"
-                        placeholder="Gmail"
-                        onChange={(e) =>
-                          handleInputChange(
-                            relayEvents[currentEventIndex],
-                            `student${num}`,
-                            "gmail",
-                            e.target.value
-                          )
-                        }
-                      />
-                      <input
-                        type="text"
-                        placeholder="Father's Name"
-                        onChange={(e) =>
-                          handleInputChange(
-                            relayEvents[currentEventIndex],
-                            `student${num}`,
-                            "fatherName",
-                            e.target.value
-                          )
-                        }
-                      />
-                      <input
-                        type="date"
-                        onChange={(e) =>
-                          handleInputChange(
-                            relayEvents[currentEventIndex],
-                            `student${num}`,
-                            "dob",
-                            e.target.value
-                          )
-                        }
-                      />
-                      <input
-                        type="tel"
-                        placeholder="Phone Number"
-                        onChange={(e) =>
-                          handleInputChange(
-                            relayEvents[currentEventIndex],
-                            `student${num}`,
-                            "phoneNumber",
-                            e.target.value
-                          )
-                        }
-                      />
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) =>
-                          handleInputChange(
-                            relayEvents[currentEventIndex],
-                            `student${num}`,
-                            "idCard",
-                            e.target.files[0]
-                          )
-                        }
-                      />
-                    </div>
-                  ))}
+                  {[1, 2, 3, 4].map((num) => {
+                    const urnError = urnErrors[`student${num}`];
+                    return (
+                      <div key={num} className="student-form">
+                        <h4>Student {num}</h4>
+                        <input
+                          type="text"
+                          placeholder="Name"
+                          onChange={(e) =>
+                            handleInputChange(
+                              relayEvents[currentEventIndex],
+                              `student${num}`,
+                              "name",
+                              e.target.value
+                            )
+                          }
+                        />
+                        <input
+                          type="text"
+                          placeholder="URN"
+                          onChange={(e) =>
+                            handleInputChange(
+                              relayEvents[currentEventIndex],
+                              `student${num}`,
+                              "urn",
+                              e.target.value.trim()
+                            )
+                          }
+                        />
+                        {urnError && (
+                          <div style={{ color: "red", fontSize: "12px" }}>
+                            {urnError}
+                          </div>
+                        )}
+                        <input
+                          type="email"
+                          placeholder="Gmail"
+                          onChange={(e) =>
+                            handleInputChange(
+                              relayEvents[currentEventIndex],
+                              `student${num}`,
+                              "gmail",
+                              e.target.value
+                            )
+                          }
+                        />
+                        <input
+                          type="text"
+                          placeholder="Father's Name"
+                          onChange={(e) =>
+                            handleInputChange(
+                              relayEvents[currentEventIndex],
+                              `student${num}`,
+                              "fatherName",
+                              e.target.value
+                            )
+                          }
+                        />
+                        <input
+                          type="date"
+                          onChange={(e) =>
+                            handleInputChange(
+                              relayEvents[currentEventIndex],
+                              `student${num}`,
+                              "dob",
+                              e.target.value
+                            )
+                          }
+                        />
+                        <input
+                          type="tel"
+                          placeholder="Phone Number"
+                          onChange={(e) =>
+                            handleInputChange(
+                              relayEvents[currentEventIndex],
+                              `student${num}`,
+                              "phoneNumber",
+                              e.target.value
+                            )
+                          }
+                        />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) =>
+                            handleInputChange(
+                              relayEvents[currentEventIndex],
+                              `student${num}`,
+                              "idCard",
+                              e.target.files[0]
+                            )
+                          }
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
                 <button className="skip-btn" onClick={handleNext}>
                   Skip & Next
@@ -361,7 +417,12 @@ function Relayfemale() {
                 <button
                   className="submit-btn"
                   onClick={handleSubmit}
-                  disabled={isLocked}
+                  disabled={
+                    isLocked ||
+                    Object.values(urnErrors).some(
+                      (error) => error && error.length > 0
+                    )
+                  }
                 >
                   Submit & Next
                 </button>

@@ -9,6 +9,7 @@ function Relay() {
   const [currentEventIndex, setCurrentEventIndex] = useState(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
+  const [urnErrors, setUrnErrors] = useState({});
   const navigate = useNavigate();
 
   const maleRelayEvents = ["4x100m Relay", "4x400m Relay"];
@@ -16,7 +17,7 @@ function Relay() {
 
   const currentRelayEvent = relayEvents[currentEventIndex];
 
-  // Fetch college name on component mount
+  // Fetch college name on mount
   useEffect(() => {
     fetch("http://localhost:5000/user-info", { credentials: "include" })
       .then((res) => res.json())
@@ -30,7 +31,7 @@ function Relay() {
       .catch(() => navigate("/"));
   }, [navigate]);
 
-  // Move to next unlocked event (recursive checking)
+  // Move to next unlocked event
   const goToNextUnlockedEvent = async () => {
     let nextIndex = currentEventIndex + 1;
 
@@ -55,11 +56,10 @@ function Relay() {
       }
     }
 
-    // All events locked
     setIsSubmitted(true);
   };
 
-  // Runs when current event changes
+  // Check event lock status on event change
   useEffect(() => {
     if (!currentRelayEvent) {
       setIsSubmitted(true);
@@ -94,7 +94,7 @@ function Relay() {
     navigate("/");
   };
 
-  const handleInputChange = (eventName, studentKey, field, value) => {
+  const handleInputChange = async (eventName, studentKey, field, value) => {
     setRelayData((prev) => {
       const newData = { ...prev };
       if (!newData[eventName]) newData[eventName] = {};
@@ -104,6 +104,51 @@ function Relay() {
       };
       return newData;
     });
+
+    if (field === "urn") {
+      // Local Duplicate Check
+      const eventData = relayData[eventName] || {};
+      let duplicateFound = false;
+
+      Object.entries(eventData).forEach(([otherStudentKey, otherStudentData]) => {
+        if (
+          otherStudentKey !== studentKey &&
+          otherStudentData?.urn === value
+        ) {
+          duplicateFound = true;
+        }
+      });
+
+      if (duplicateFound) {
+        setUrnErrors((prev) => ({
+          ...prev,
+          [studentKey]: `URN ${value} is duplicated with another student.`,
+        }));
+        return; // Skip backend check if local duplicate found
+      }
+
+      // Backend Duplicate Check
+      try {
+        const res = await axios.get(
+          `http://localhost:5000/relay/check-urn/${value}`,
+          { withCredentials: true }
+        );
+
+        if (res.data.exists) {
+          setUrnErrors((prev) => ({
+            ...prev,
+            [studentKey]: `URN ${value} is already registered in ${res.data.event} by ${res.data.college}.`,
+          }));
+        } else {
+          setUrnErrors((prev) => ({
+            ...prev,
+            [studentKey]: "",
+          }));
+        }
+      } catch (err) {
+        console.error("Error checking URN:", err);
+      }
+    }
   };
 
   const validateFields = (student) => {
@@ -137,6 +182,7 @@ function Relay() {
       alert("Student age must be 25 or below.");
       return false;
     }
+
     return true;
   };
 
@@ -146,6 +192,15 @@ function Relay() {
       setTimeout(() => {
         goToNextUnlockedEvent();
       }, 2000);
+      return;
+    }
+
+    const hasUrnErrors = Object.values(urnErrors).some(
+      (error) => error && error.length > 0
+    );
+
+    if (hasUrnErrors) {
+      alert("One or more URNs are invalid or duplicated. Please fix them before submitting.");
       return;
     }
 
@@ -197,12 +252,20 @@ function Relay() {
       });
 
       const result = await response.json();
-
       if (result.success) {
-        alert(result.message || "Relay Registration Successful!");
+        if (typeof result.message === "object") {
+          alert(result.message.info || JSON.stringify(result.message));
+        } else {
+          alert(result.message || "Relay Registration Successful!");
+        }
+
         goToNextUnlockedEvent();
       } else {
-        alert(result.message || "Relay Registration failed. Please try again.");
+        if (typeof result.message === "object") {
+          alert(result.message.error || JSON.stringify(result.message));
+        } else {
+          alert(result.message || "Relay Registration failed. Please try again.");
+        }
       }
     } catch (error) {
       console.error("Error:", error);
@@ -262,6 +325,7 @@ function Relay() {
                           )
                         }
                       />
+
                       <input
                         type="text"
                         placeholder="URN"
@@ -274,6 +338,18 @@ function Relay() {
                           )
                         }
                       />
+                      {urnErrors[`student${num}`] && (
+                        <p
+                          style={{
+                            color: "red",
+                            fontSize: "0.9em",
+                            marginTop: "4px",
+                          }}
+                        >
+                          {urnErrors[`student${num}`]}
+                        </p>
+                      )}
+
                       <input
                         type="email"
                         placeholder="Gmail"
@@ -300,7 +376,6 @@ function Relay() {
                       />
                       <input
                         type="date"
-                        placeholder="Date of Birth"
                         onChange={(e) =>
                           handleInputChange(
                             currentRelayEvent,
@@ -337,13 +412,19 @@ function Relay() {
                     </div>
                   ))}
                 </div>
+
                 <button className="skip-btn" onClick={goToNextUnlockedEvent}>
                   Skip & Next
                 </button>
                 <button
                   className="submit-btn"
                   onClick={handleSubmit}
-                  disabled={isLocked}
+                  disabled={
+                    isLocked ||
+                    Object.values(urnErrors).some(
+                      (error) => error && error.length > 0
+                    )
+                  }
                 >
                   Submit & Next
                 </button>
