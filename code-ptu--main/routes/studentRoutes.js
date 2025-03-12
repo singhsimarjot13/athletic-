@@ -6,6 +6,8 @@ const cloudinary = require("../config/cloudinary");
 const Student = require("../models/Student");
 const RelayStudent = require("../models/RelayStudent");
 const MaleEventLock = require("../models/eventLock");
+const assignJerseyNumber = require("../helpers/assignJerseyNumber");
+
 
 const router = express.Router();
 const authMiddleware = (req, res, next) => {
@@ -147,14 +149,14 @@ const uploadFields = upload.fields([
 
 router.post("/register", authMiddleware, uploadFields, async (req, res) => {
   try {
-    const collegeName = req.session.collegeName; // 🎯 Use session collegeName for consistency
+    const collegeName = req.session.collegeName;
     const {
       events,
       student1Name, student1URN, student1Gmail, student1FatherName, student1age, student1PhoneNumber,
       student2Name, student2URN, student2Gmail, student2FatherName, student2age, student2PhoneNumber
     } = req.body;
 
-    const event = events; // Rename for clarity
+    const event = events;
 
     // 🔐 Check if the event is already locked for this college
     let lockDoc = await MaleEventLock.findOne({ collegeName });
@@ -171,6 +173,21 @@ router.post("/register", authMiddleware, uploadFields, async (req, res) => {
     const student1Image = req.files?.student1Image?.[0]?.path || "";
     const student2Image = req.files?.student2Image?.[0]?.path || "";
 
+    // ✅ URN-based Jersey Number Allotment
+    const student1JerseyNumber = await assignJerseyNumber(student1URN, student1Name, collegeName);
+    let student2JerseyNumber = null;
+    
+    if (student2URN) {
+      student2JerseyNumber = await assignJerseyNumber(student2URN, student2Name, collegeName);
+    }
+
+    // 📝 Logs for debugging jersey numbers
+    console.log("✅ Jersey Allotment Info (URN Based):");
+    console.log(`➡️  Student 1 (URN: ${student1URN}) Jersey Number: ${student1JerseyNumber}`);
+    if (student2URN) {
+      console.log(`➡️  Student 2 (URN: ${student2URN}) Jersey Number: ${student2JerseyNumber}`);
+    }
+
     const newStudent = new Student({
       collegeName,
       event,
@@ -183,6 +200,7 @@ router.post("/register", authMiddleware, uploadFields, async (req, res) => {
           age: student1age,
           phoneNumber: student1PhoneNumber,
           image: student1Image,
+          jerseyNumber: student1JerseyNumber, // 🎽 URN-based Jersey Number
         },
       },
     });
@@ -196,11 +214,12 @@ router.post("/register", authMiddleware, uploadFields, async (req, res) => {
         age: student2age,
         phoneNumber: student2PhoneNumber,
         image: student2Image,
+        jerseyNumber: student2JerseyNumber, // 🎽 URN-based Jersey Number
       };
     }
 
     await newStudent.save();
-
+    
     // 🔐 Lock the event after successful registration
     if (!lockDoc) {
       await MaleEventLock.create({
@@ -212,12 +231,22 @@ router.post("/register", authMiddleware, uploadFields, async (req, res) => {
       await lockDoc.save();
     }
 
-    res.json({ success: true, message: "Student registered and event locked successfully!" });
+    res.json({
+      success: true,
+      message: "Student registered and event locked successfully!",
+      jerseyNumbers: {
+        student1JerseyNumber,
+        student2JerseyNumber
+      }
+    });
+
   } catch (error) {
     console.error("❌ Registration Error:", error);
     res.status(500).json({ success: false, message: "Server Error" });
   }
 });
+
+
 
 
 module.exports = router;

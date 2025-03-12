@@ -113,7 +113,8 @@ function Relay() {
       !student.gmail ||
       !student.fatherName ||
       !student.dob ||
-      !student.phoneNumber
+      !student.phoneNumber ||
+      !student.idCard
     ) {
       alert("All fields are required. Please fill in missing details.");
       return false;

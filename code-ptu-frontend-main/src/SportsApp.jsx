@@ -12,14 +12,25 @@ function SportsApp() {
   const navigate = useNavigate();
 
   const maleEvents = [
-    "100m Race", "200m Race", "400m Race", "800m Race",
-    "1500m Race", "5000m Race", "10000m Race", "110m Hurdles",
-    "400m Hurdles", "Long Jump", "Triple Jump", "High Jump",
-    "Shot Put", "Discus Throw", "Javelin Throw", "Hammer Throw",
+    "100M Race-Male",
+    "200M Race-Male",
+    "400M Race-Male",
+    "800M Race-Male",
+    "1500M Race-Male",
+    "5000M Race-Male",
+    "10000M Race-Male",
+    "110M Hurdles-Male",
+    "400M Hurdles-Male",
+    "Long Jump-Male",
+    "Triple Jump-Male",
+    "High Jump-Male",
+    "Shot Put-Male",
+    "Discus Throw-Male",
+    "Javelin Throw-Male",
+    "Hammer Throw-Male",
   ];
 
-
-  const events =  maleEvents;
+  const events = maleEvents;
   const currentEvent = events[currentEventIndex];
 
   useEffect(() => {
@@ -91,6 +102,7 @@ function SportsApp() {
 
     checkCurrentEventLock();
   }, [currentEvent]);
+
   const handleLogout = async () => {
     await fetch("http://localhost:5000/logout", { credentials: "include" });
     navigate("/");
@@ -100,22 +112,33 @@ function SportsApp() {
     setAthleteData((prev) => {
       const newData = { ...prev };
       if (!newData[eventName]) newData[eventName] = {};
-      newData[eventName][studentKey] = { ...newData[eventName][studentKey], [field]: value };
+      newData[eventName][studentKey] = {
+        ...newData[eventName][studentKey],
+        [field]: value,
+      };
       return newData;
     });
   };
 
   const validateFields = (student1) => {
-    if (!student1.name || !student1.urn || !student1.gmail || !student1.fatherName || !student1.dob || !student1.phoneNumber) {
+    if (
+      !student1.name ||
+      !student1.urn ||
+      !student1.gmail ||
+      !student1.fatherName ||
+      !student1.dob ||
+      !student1.phoneNumber ||
+      !student1.idCard
+    ) {
       alert("All fields are required. Please fill in missing details.");
       return false;
     }
-  
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const phoneRegex = /^[6-9]\d{9}$/;
     const birthDate = new Date(student1.dob);
     const age = new Date().getFullYear() - birthDate.getFullYear();
-  
+
     if (!emailRegex.test(student1.gmail)) {
       alert("Invalid email format.");
       return false;
@@ -131,24 +154,24 @@ function SportsApp() {
     return true;
   };
 
-
   const handleSubmit = async () => {
     if (isLocked) {
       alert("This event is locked. Moving to the next event...");
       setTimeout(() => {
         goToNextUnlockedEvent();
-      }, 2000);return;
+      }, 2000);
+      return;
     }
     const currentEvent = events[currentEventIndex];
     const student1 = athleteData[currentEvent]?.student1 || {};
     const student2 = athleteData[currentEvent]?.student2 || {};
-  
+
     // Validate Student 1
     if (!validateFields(student1)) return;
-  
+
     // Validate Student 2 only if URN is entered
     if (student2.urn && !validateFields(student2)) return;
-  
+
     // Calculate age from DOB
     const calculateAge = (dob) => {
       if (!dob) return "";
@@ -158,14 +181,14 @@ function SportsApp() {
       // Adjust age if birthday hasn't occurred yet this year
       if (
         currentDate.getMonth() < birthDate.getMonth() ||
-        (currentDate.getMonth() === birthDate.getMonth() && currentDate.getDate() < birthDate.getDate())
+        (currentDate.getMonth() === birthDate.getMonth() &&
+          currentDate.getDate() < birthDate.getDate())
       ) {
         age--;
       }
       return age;
     };
-    
-  
+
     const formData = new FormData();
     formData.append("collegeName", collegeName);
     formData.append("events", currentEvent);
@@ -175,11 +198,11 @@ function SportsApp() {
     formData.append("student1FatherName", student1.fatherName);
     formData.append("student1age", calculateAge(student1.dob));
     formData.append("student1PhoneNumber", student1.phoneNumber);
-  
+
     if (student1.idCard) {
       formData.append("student1Image", student1.idCard);
     }
-  
+
     if (student2.urn) {
       formData.append("student2Name", student2.name);
       formData.append("student2URN", student2.urn);
@@ -191,16 +214,16 @@ function SportsApp() {
         formData.append("student2Image", student2.idCard);
       }
     }
-  
+
     try {
       const response = await fetch("http://localhost:5000/student/register", {
         method: "POST",
         body: formData,
         credentials: "include",
       });
-  
+
       const result = await response.json();
-  
+
       if (result.success) {
         alert(result.message || "Registration Successful!");
         handleNext();
@@ -212,7 +235,6 @@ function SportsApp() {
       alert("Server error. Please try again later.");
     }
   };
-
 
   const handleNext = () => {
     if (currentEventIndex < events.length - 1) {
@@ -230,30 +252,32 @@ function SportsApp() {
           <button
             className="female-register-btn"
             onClick={() =>
-              window.location.href = 'http://localhost:5173/female-sportsapp'
+              (window.location.href = "http://localhost:5173/female-sportsapp")
             }
           >
             Female Sports Register
           </button>
-          <button className="logout-btn" onClick={handleLogout}>Logout</button>
+          <button className="logout-btn" onClick={handleLogout}>
+            Logout
+          </button>
         </div>
       </nav>
-  
+
       <div className="background">
         <h2 className="welcome-text">Welcome to Sports Meet, {collegeName}</h2>
       </div>
-  
+
       <div className="events-container">
         {!isSubmitted ? (
           <>
             <h3 className="event-title">Register for {currentEvent}</h3>
-  
+
             {isLocked && (
               <p style={{ color: "red" }}>
                 You have already registered for this event. Form is locked.
               </p>
             )}
-  
+
             {!isLocked && (
               <>
                 <div className="athlete-form">
@@ -342,7 +366,7 @@ function SportsApp() {
                       )
                     }
                   />
-  
+
                   <h4>Student 2 (Optional)</h4>
                   <input
                     type="text"
@@ -369,7 +393,7 @@ function SportsApp() {
                     }
                   />
                 </div>
-  
+
                 {/* Buttons */}
                 <button className="skip-btn" onClick={handleNext}>
                   Skip & Next
@@ -390,6 +414,6 @@ function SportsApp() {
       </div>
     </div>
   );
-}  
+}
 
 export default SportsApp;

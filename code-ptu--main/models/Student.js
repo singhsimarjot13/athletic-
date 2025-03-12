@@ -6,7 +6,7 @@ const studentSchema = new mongoose.Schema({
   students: {
     student1: {
       name: { type: String, required: true },
-      urn: { type: String, required: true, unique: true },
+      urn: { type: String, required: true, sparse: true },
       idCard: { type: String },
       gmail: { type: String, required: true },
       fatherName: { type: String, required: true },

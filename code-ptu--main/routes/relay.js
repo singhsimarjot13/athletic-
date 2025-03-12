@@ -4,6 +4,7 @@ const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const cloudinary = require("../config/cloudinary");
 const RelayStudent = require("../models/RelayStudent");
 const RelayLock = require("../models/RelayLock");
+const assignJerseyNumber = require("../helpers/assignJerseyNumber"); // Assuming you have this function imported
 
 
 const router = express.Router();
@@ -57,6 +58,8 @@ router.get("/relay-status/:event", authMiddleware, async (req, res) => {
 });
 
 // ✅ POST Register Relay Team (Single Team per Event)
+
+
 router.post("/register", authMiddleware, uploadFields, async (req, res) => {
   try {
     console.log("REQ BODY ===>", req.body);
@@ -78,26 +81,44 @@ router.post("/register", authMiddleware, uploadFields, async (req, res) => {
     // Prepare students array
     const students = [];
 
+    // To store jersey numbers for the response
+    const jerseyNumbers = [];
+
     for (let i = 1; i <= 4; i++) {
-      const student = {
-        name: req.body[`student${i}Name`],
-        urn: req.body[`student${i}URN`],
-        gmail: req.body[`student${i}Gmail`],
-        fatherName: req.body[`student${i}FatherName`],
-        age: parseInt(req.body[`student${i}age`], 10),
-        phoneNumber: req.body[`student${i}PhoneNumber`],
-        image: req.files[`student${i}Image`]?.[0]?.path || "",
-      };
+      const name = req.body[`student${i}Name`];
+      const urn = req.body[`student${i}URN`];
+      const gmail = req.body[`student${i}Gmail`];
+      const fatherName = req.body[`student${i}FatherName`];
+      const age = parseInt(req.body[`student${i}age`], 10);
+      const phoneNumber = req.body[`student${i}PhoneNumber`];
+      const image = req.files[`student${i}Image`]?.[0]?.path || "";
 
       // Validation
-      if (!student.name || !student.urn || !student.gmail || !student.fatherName || !student.age || !student.phoneNumber) {
+      if (!name || !urn || !gmail || !fatherName || !age || !phoneNumber) {
         return res.status(400).json({ success: false, message: `All fields are required for student ${i}` });
       }
 
-      students.push(student);
+      // Assign jersey number based on URN
+      const jerseyNumber = await assignJerseyNumber(urn, name, collegeName);
+      console.log(`✅ Assigned Jersey Number for ${name} (URN: ${urn}): ${jerseyNumber}`);
+
+      // Push jersey number to array for response
+      jerseyNumbers.push({ student: i, name, urn, jerseyNumber });
+
+      // Add student to array
+      students.push({
+        name,
+        urn,
+        gmail,
+        fatherName,
+        age,
+        phoneNumber,
+        image,
+        jerseyNumber, // Add jersey number to student object
+      });
     }
 
-    // Check lock (optional redundancy, just to be safe)
+    // Check lock (optional redundancy)
     let lockDoc = await RelayLock.findOne({ collegeName });
 
     if (lockDoc && lockDoc.eventsLocked[event]) {
@@ -124,7 +145,11 @@ router.post("/register", authMiddleware, uploadFields, async (req, res) => {
       await lockDoc.save();
     }
 
-    res.status(201).json({ success: true, message: "Team registered successfully!" });
+    res.status(201).json({
+      success: true,
+      message: "Team registered successfully!",
+      jerseyNumbers, // Return jersey number info
+    });
 
   } catch (error) {
     console.error("❌ Error registering relay team:", error);

@@ -1,77 +1,133 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const MaleEventLock = new mongoose.Schema({
   collegeName: {
     type: String,
     required: true,
-    unique: true
+    unique: true,
   },
   eventsLocked: {
-    "100m Race": {
+    "100M Race-Male": {
       type: Boolean,
-      default: false
+      default: false,
     },
-    "200m Race": {
+    "200M Race-Male": {
       type: Boolean,
-      default: false
+      default: false,
     },
-    "400m Race": {
+    "400M Race-Male": {
       type: Boolean,
-      default: false
+      default: false,
     },
-    "800m Race": {
+    "800M Race-Male": {
       type: Boolean,
-      default: false
+      default: false,
     },
-    "1500m Race": {
+    "1500M Race-Male": {
       type: Boolean,
-      default: false
+      default: false,
     },
-    "5000m Race": {
+    "5000M Race-Male": {
       type: Boolean,
-      default: false
+      default: false,
     },
-    "10000m Race": {
+    "10000M Race-Male": {
       type: Boolean,
-      default: false
+      default: false,
     },
-    "110m Hurdles": {
+    "110M Hurdles-Male": {
       type: Boolean,
-      default: false
+      default: false,
     },
-    "400m Hurdles": {
+    "400M Hurdles-Male": {
       type: Boolean,
-      default: false
+      default: false,
     },
-    "Long Jump": {
+    "Long Jump-Male": {
       type: Boolean,
-      default: false
+      default: false,
     },
-    "Triple Jump": {
+    "Triple Jump-Male": {
       type: Boolean,
-      default: false
+      default: false,
     },
-    "High Jump": {
+    "High Jump-Male": {
       type: Boolean,
-      default: false
+      default: false,
     },
-    "Shot Put": {
+    "Shot Put-Male": {
       type: Boolean,
-      default: false
+      default: false,
     },
-    "Discus Throw": {
+    "Discus Throw-Male": {
       type: Boolean,
-      default: false
+      default: false,
     },
-    "Javelin Throw": {
+    "Javelin Throw-Male": {
       type: Boolean,
-      default: false
+      default: false,
     },
-    "Hammer Throw": {
+    "Hammer Throw-Male": {
       type: Boolean,
-      default: false
-    }
-  }
+      default: false,
+    },
+    "100M Race-Female": {
+      type: Boolean,
+      default: false,
+    },
+    "200M Race-Female": {
+      type: Boolean,
+      default: false,
+    },
+    "400M Race-Female": {
+      type: Boolean,
+      default: false,
+    },
+    "800M Race-Female": {
+      type: Boolean,
+      default: false,
+    },
+    "1500M Race-Female": {
+      type: Boolean,
+      default: false,
+    },
+    "3000M Race-Female": {
+      type: Boolean,
+      default: false,
+    },
+    "100M Hurdles-Female": {
+      type: Boolean,
+      default: false,
+    },
+    "400M Hurdles-Female": {
+      type: Boolean,
+      default: false,
+    },
+    "Long Jump-Female": {
+      type: Boolean,
+      default: false,
+    },
+    "Triple Jump-Female": {
+      type: Boolean,
+      default: false,
+    },
+    "High Jump-Female": {
+      type: Boolean,
+      default: false,
+    },
+    "Shot Put-Female": {
+      type: Boolean,
+      default: false,
+    },
+    "Discus Throw-Female": {
+      type: Boolean,
+      default: false,
+    },
+    "Javelin Throw-Female": {
+      type: Boolean,
+      default: false,
+    },
+  },
 });
 
-module.exports = mongoose.model('MaleEventLock',MaleEventLock);
+module.exports = mongoose.model("MaleEventLock", MaleEventLock);
