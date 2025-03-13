@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "./SportsApp.css";
 import axios from "axios";
 
-function SportsApp() {
+function SportsAppfield() {
   const [collegeName, setCollegeName] = useState("Loading...");
   const [athleteData, setAthleteData] = useState({});
   const [isLocked, setIsLocked] = useState(false);
@@ -30,15 +30,13 @@ function SportsApp() {
 
 
   const maleEvents = [
-    "100M Race-Male",
-    "200M Race-Male",
-    "400M Race-Male",
-    "800M Race-Male",
-    "1500M Race-Male",
-    "5000M Race-Male",
-    "10000M Race-Male",
-    "110M Hurdles-Male",
-    "400M Hurdles-Male",
+    "Long Jump-Male",
+    "Triple Jump-Male",
+    "High Jump-Male",
+    "Shot Put-Male",
+    "Discus Throw-Male",
+    "Javelin Throw-Male",
+    "Hammer Throw-Male",
   ];
 
   const events = maleEvents;
@@ -530,4 +528,4 @@ function SportsApp() {
   );
 }
 
-export default SportsApp;
+export default SportsAppfield;

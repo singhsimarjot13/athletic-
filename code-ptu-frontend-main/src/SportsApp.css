@@ -1,9 +1,13 @@
 /* General styles */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+/* General styles */
 body {
-  font-family: Arial, sans-serif;
+  font-family: 'Poppins', sans-serif;
   margin: 0;
   padding: 0;
-  background-color: #f4f4f4;
+  background-color: #f8f9fa;
+  color: #333;
 }
 
 /* Navbar */
@@ -11,50 +15,54 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 20px;
-  background: #0c2861;
-  color: white;
-  min-height: 60px;
+  padding: 12px 30px;
+  background: linear-gradient(90deg, #0c2861, #264a9b);
+  color: #fff;
+  min-height: 70px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .college-name {
-  font-size: 1.5rem;
-  font-weight: bold;
+  font-size: 1.8rem;
+  font-weight: 600;
 }
 
 .nav-buttons {
   display: flex;
-  gap: 30px;
+  gap: 20px;
 }
 
 .nav-buttons button {
-  padding: 8px 16px;
+  padding: 10px 20px;
   border: none;
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: 12px;
   font-size: 1rem;
-  transition: transform 0.2s ease-in-out;
+  font-weight: 500;
+  transition: all 0.3s ease-in-out;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .nav-buttons button:hover {
-  transform: scale(1.1);
+  transform: translateY(-2px);
 }
 
-.support-btn {
+.female-register-btn {
   background: #ffcc00;
+  color: #333;
 }
 
 .logout-btn {
   background: #ff4444;
-  color: white;
+  color: #fff;
 }
 
 /* Background section */
 .background {
   background: url("/bg-image.jpg") center/cover no-repeat;
-  width: 99vw; /* Full width of the viewport */
-  height: 40vh; /* Adjust height as needed */
-  min-height: 250px; /* Prevents it from being too small */
+  width: 100vw;
+  height: 50vh;
+  min-height: 300px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -62,98 +70,182 @@ body {
 }
 
 .welcome-text {
-  font-size: 3rem;
-  color: white;
-  font-weight: bold;
-  text-shadow: 3px 3px 10px rgba(0, 0, 0, 0.7);
+  font-size: 3.2rem;
+  color: #fff;
+  font-weight: 700;
+  text-shadow: 3px 3px 15px rgba(0, 0, 0, 0.6);
   text-align: center;
-}
-.event-title{
-  font-size: 2rem;
-  font-weight: bold;
-  padding-bottom: 10px;
 }
 
 /* Events Section */
 .events-container {
-  margin-left: 100px;
-  margin-right: 100px;
-  padding: 30px;
+  margin: 50px auto;
+  padding: 40px;
+  max-width: 1200px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); /* Always 3 columns */
-  gap: 50px;
-  justify-content: center;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 40px;
 }
 
-/* Event Cards */
-.event-card {
-  background: rgb(241, 240, 240);
-  min-height: 300px;
-  padding: 25px;
-  border-radius: 12px;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
-  text-align: center;
-  transition: transform 0.2s ease-in-out;
-}
-.dropdown{
-  font-size: 1rem;
-}
-
-
-.event-card:hover {
-  transform: scale(1.05);
-}
-
-.event-card h3 {
-  font-size: 2rem;
-  margin-bottom: 15px;
-}
-
-.event-card select {
-  width: 100%;
-  padding: 12px;
-  font-size: 1.2rem;
-  border-radius: 8px;
-  border: 1px solid #ccc;
+/* Event Title */
+.event-title {
+  font-size: 2.4rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #0c2861;
 }
 
 /* Athlete Form */
 .athlete-form {
-  margin-top: 15px;
+  background: #fff;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 20px;
+  transition: transform 0.3s ease-in-out;
+}
+
+.athlete-form:hover {
+  transform: translateY(-5px);
+}
+
+.athlete-form h4 {
+  margin-bottom: 10px;
+  color: #0c2861;
 }
 
 .athlete-form input {
   width: 100%;
-  padding: 10px;
-  font-size: 1.2rem;
-  border-radius: 8px;
+  padding: 12px;
+  font-size: 1.1rem;
+  border-radius: 10px;
   border: 1px solid #ccc;
+  transition: border 0.3s ease-in-out;
+  margin-bottom: 5px;
+}
+
+.athlete-form input:focus {
+  outline: none;
+  border: 1px solid #0c2861;
 }
 
 .athlete-form input[type="file"] {
   border: none;
-  background: #f4f4f4;
+  background: #f1f1f1;
+  cursor: pointer;
 }
-/* Submit Button */
-.submit-container {
-  display: flex;
-  justify-content: center;
-  margin-top: 20px;
+
+/* Buttons */
+.skip-btn,
+.submit-btn {
+  padding: 15px 25px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+  margin-top: 10px;
+  display: block;
+}
+
+.skip-btn {
+  background: #ffc107;
+  color: #333;
+}
+
+.skip-btn:hover {
+  background: #e0a800;
+  transform: translateY(-2px);
 }
 
 .submit-btn {
-  padding: 15px 30px;
-  font-size: 1.5rem;
   background-color: #28a745;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
+  color: #fff;
 }
 
 .submit-btn:hover {
   background-color: #218838;
+  transform: translateY(-2px);
 }
+
+.submit-btn:disabled {
+  background-color: #94d3a2;
+  cursor: not-allowed;
+}
+
+p {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+/* Event Cards */
+.event-card {
+  background: #fff;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  transition: transform 0.3s ease-in-out;
+}
+
+.event-card:hover {
+  transform: translateY(-5px);
+}
+
+.event-card h3 {
+  font-size: 1.8rem;
+  margin-bottom: 20px;
+}
+
+.event-card select {
+  width: 100%;
+  padding: 14px;
+  font-size: 1.1rem;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+}
+
+/* Thank You Message */
+.events-container h2 {
+  text-align: center;
+  color: #28a745;
+  font-size: 2.2rem;
+  font-weight: 600;
+}
+
+/* Warnings */
+.warning-text {
+  color: #dc3545;
+  font-weight: 500;
+  margin-top: -10px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .navbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .nav-buttons {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .events-container {
+    padding: 20px;
+    margin: 20px;
+    grid-template-columns: 1fr;
+  }
+
+  .background {
+    height: 40vh;
+  }
+
+  .welcome-text {
+    font-size: 2.5rem;
+  }
+}
+

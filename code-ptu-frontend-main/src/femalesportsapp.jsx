@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "./SportsApp.css";
 import axios from "axios";
 
-function SportsAppfemale() {
+function SportsAppfemalefields() {
   const [collegeName, setCollegeName] = useState("Loading...");
   const [athleteData, setAthleteData] = useState({});
   const [urnWarnings, setUrnWarnings] = useState({});
@@ -11,6 +11,20 @@ function SportsAppfemale() {
   const [currentEventIndex, setCurrentEventIndex] = useState(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const navigate = useNavigate();
+  const [formKey, setFormKey] = useState(0);
+  const resetForm = () => {
+    setAthleteData((prev) => ({
+        ...prev,
+        [events[currentEventIndex]]: { student1: {}, student2: {} }
+    }));
+
+    setUrnWarnings({});
+    
+    // Change the form key to force a re-render
+    setFormKey((prevKey) => prevKey + 1);
+};
+
+
 
   const femaleEvents = [
     "100M Race-Female",
@@ -22,13 +36,6 @@ function SportsAppfemale() {
     "5000M Race-Female",
     "100M Hurdles-Female",
     "400M Hurdles-Female",
-    "Long Jump-Female",
-    "Triple Jump-Female",
-    "High Jump-Female",
-    "Shot Put-Female",
-    "Discus Throw-Female",
-    "Javelin Throw-Female",
-    "Javelin Throw-Female",
   ];
 
   const events = femaleEvents;
@@ -294,6 +301,7 @@ function SportsAppfemale() {
 
       if (result.success) {
         alert(result.message || "Registration Successful!");
+        resetForm();
         handleNext();
       } else {
         alert(result.message || "Registration failed. Please try again.");
@@ -306,7 +314,10 @@ function SportsAppfemale() {
 
   const handleNext = () => {
     if (currentEventIndex < events.length - 1) {
-      setCurrentEventIndex((prevIndex) => prevIndex + 1);
+      resetForm();
+      setTimeout(() => {
+          setCurrentEventIndex((prevIndex) => prevIndex + 1);
+      }, 100);
     } else {
       setIsSubmitted(true);
     }
@@ -320,10 +331,10 @@ function SportsAppfemale() {
           <button
             className="female-register-btn"
             onClick={() =>
-              (window.location.href = "http://localhost:5173/female-sportsapp")
+              (window.location.href = "http://localhost:5173/sportsApp")
             }
           >
-            Female Sports Register
+            Male Sports Register
           </button>
           <button className="logout-btn" onClick={handleLogout}>
             Logout
@@ -348,7 +359,7 @@ function SportsAppfemale() {
 
             {!isLocked && (
               <>
-                <div className="athlete-form">
+                <div className="athlete-form"  key={formKey}>
                   <h4>Student 1</h4>
                   <input
                     type="text"
@@ -530,18 +541,20 @@ function SportsAppfemale() {
                   {urnWarnings.sameUrn && (
                     <p style={{ color: "red" }}>{urnWarnings.sameUrn}</p>
                   )}
-                </div>
-
-                <button className="skip-btn" onClick={handleNext}>
-                  Skip & Next
-                </button>
-                <button
+                                  <button
                   className="submit-btn"
                   onClick={handleSubmit}
                   disabled={isLocked}
                 >
                   Submit & Next
                 </button>
+                                  <button className="skip-btn" onClick={handleNext}>
+                  Skip & Next
+                </button>
+
+                </div>
+
+
               </>
             )}
           </>
@@ -553,4 +566,4 @@ function SportsAppfemale() {
   );
 }
 
-export default SportsAppfemale;
+export default SportsAppfemalefields;

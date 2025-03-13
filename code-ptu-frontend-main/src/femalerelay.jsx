@@ -12,6 +12,8 @@ function Relayfemale() {
   const [urnErrors, setUrnErrors] = useState({});
 
   const navigate = useNavigate();
+  const [formKey, setFormKey] = useState(0);
+
 
   const femaleRelayEvents = ["4x100m Relay Female", "4x400m Relay Female"];
   const relayEvents = femaleRelayEvents;
@@ -259,6 +261,7 @@ function Relayfemale() {
 
       if (result.success) {
         alert(result.message || "Relay Registration Successful!");
+        setFormKey((prevKey) => prevKey + 1);
         goToNextUnlockedEvent();
       } else {
         alert(result.message || "Relay Registration failed. Please try again.");
@@ -284,9 +287,9 @@ function Relayfemale() {
         <div className="nav-buttons">
           <button
             className="female-register-btn"
-            onClick={() => navigate("/female-relayapp")}
+            onClick={() => navigate("/relayapp")}
           >
-            Female Sports Register
+            Male Sports Register
           </button>
           <button className="logout-btn" onClick={handleLogout}>
             Logout
@@ -313,7 +316,7 @@ function Relayfemale() {
               </p>
             ) : (
               <>
-                <div className="athlete-form">
+                <div className="athlete-form"  key={formKey}>
                   {[1, 2, 3, 4].map((num) => {
                     const urnError = urnErrors[`student${num}`];
                     return (
@@ -410,11 +413,7 @@ function Relayfemale() {
                       </div>
                     );
                   })}
-                </div>
-                <button className="skip-btn" onClick={handleNext}>
-                  Skip & Next
-                </button>
-                <button
+                                  <button
                   className="submit-btn"
                   onClick={handleSubmit}
                   disabled={
@@ -426,6 +425,12 @@ function Relayfemale() {
                 >
                   Submit & Next
                 </button>
+                                  <button className="skip-btn" onClick={handleNext}>
+                  Skip & Next
+                </button>
+
+                </div>
+
               </>
             )}
           </>

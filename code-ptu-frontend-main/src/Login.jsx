@@ -24,7 +24,7 @@ function Login() {
       } else {
         const result = await response.json();
         if (result.success) {
-          navigate("/SportsApp");
+          navigate("/home");
         } else {
           alert(result.message || "Unexpected error occurred.");
         }

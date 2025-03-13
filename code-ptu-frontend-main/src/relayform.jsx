@@ -11,6 +11,11 @@ function Relay() {
   const [isLocked, setIsLocked] = useState(false);
   const [urnErrors, setUrnErrors] = useState({});
   const navigate = useNavigate();
+  const [formKey, setFormKey] = useState(0);
+
+
+
+
 
   const maleRelayEvents = ["4x100m Relay", "4x400m Relay"];
   const relayEvents = maleRelayEvents;
@@ -257,6 +262,7 @@ function Relay() {
           alert(result.message.info || JSON.stringify(result.message));
         } else {
           alert(result.message || "Relay Registration Successful!");
+          setFormKey((prevKey) => prevKey + 1);
         }
 
         goToNextUnlockedEvent();
@@ -309,7 +315,7 @@ function Relay() {
               </p>
             ) : (
               <>
-                <div className="athlete-form">
+                <div className="athlete-form"  key={formKey}>
                   {[1, 2, 3, 4].map((num) => (
                     <div key={num} className="student-form">
                       <h4>Student {num}</h4>
@@ -411,12 +417,7 @@ function Relay() {
                       />
                     </div>
                   ))}
-                </div>
-
-                <button className="skip-btn" onClick={goToNextUnlockedEvent}>
-                  Skip & Next
-                </button>
-                <button
+                                  <button
                   className="submit-btn"
                   onClick={handleSubmit}
                   disabled={
@@ -428,6 +429,13 @@ function Relay() {
                 >
                   Submit & Next
                 </button>
+                                  <button className="skip-btn" onClick={goToNextUnlockedEvent}>
+                  Skip & Next
+                </button>
+
+                </div>
+
+
               </>
             )}
           </>
