@@ -73,6 +73,8 @@ const adminRoutes = require("./routes/adminRoutes");
 const authRoutes = require("./routes/authRoutes");
 const studentRoutes = require("./routes/studentRoutes");
 const relayRoutes = require("./routes/relay");
+const userRoutes = require("./routes/userRoutes");
+app.use("/user", userRoutes);
 
 app.use("/admin", adminRoutes);
 app.use("/", authRoutes);

@@ -1,12 +1,13 @@
 const express = require("express");
 const multer = require("multer");
-const XLSX = require("xlsx");
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const cloudinary = require("../config/cloudinary");
 const Student = require("../models/Student");
 const RelayStudent = require("../models/RelayStudent");
 const MaleEventLock = require("../models/eventLock");
 const assignJerseyNumber = require("../helpers/assignJerseyNumber");
+const { Parser } = require("json2csv");
+const Jersey = require("../models/Jersey");
 
 const router = express.Router();
 
@@ -132,61 +133,125 @@ router.get("/students", async (req, res) => {
   }
 });
 
-// ✅ GET: Export students and relay students to Excel
+// ✅ GET: Export students and relay students
+
+
 router.get("/export", async (req, res) => {
   try {
-    const { event, collegeName } = req.query;
+    const { collegeName, event } = req.query;
 
-    let query = {};
-    if (event) query.event = event;
-    if (collegeName) query.collegeName = collegeName;
+    const studentFilter = {};
+    const relayFilter = {};
 
-    const students = await Student.find(query);
-    const relayStudents = await RelayStudent.find(query);
-
-    const allStudents = [
-      ...students.map((entry) => ({
-        College: entry.collegeName || "",
-        Event: entry.event || "",
-        Student1_Name: entry.students?.student1?.name || "",
-        Student1_URN: entry.students?.student1?.urn || "",
-        Student1_Email: entry.students?.student1?.gmail || "",
-        Student2_Name: entry.students?.student2?.name || "",
-        Student2_URN: entry.students?.student2?.urn || "",
-        Student2_Email: entry.students?.student2?.gmail || "",
-      })),
-      ...relayStudents.flatMap((entry) =>
-        entry.students.map((student, index) => ({
-          College: entry.collegeName || "",
-          Event: entry.event || "",
-          Team: entry.teamIndex || "",
-          Student_Index: index + 1,
-          Student_Name: student.name || "",
-          Student_URN: student.urn || "",
-          Student_Email: student.gmail || "",
-        }))
-      ),
-    ];
-
-    if (allStudents.length === 0) {
-      return res.status(404).json({ success: false, message: "No data found" });
+    if (collegeName) {
+      studentFilter.collegeName = collegeName;
+      relayFilter.collegeName = collegeName;
     }
 
-    const ws = XLSX.utils.json_to_sheet(allStudents);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Students");
+    if (event) {
+      studentFilter.event = event;
+      relayFilter.event = event;
+    }
 
-    const buffer = XLSX.write(wb, { bookType: "xlsx", type: "buffer" });
+    const students = await Student.find(studentFilter);
+    const relayStudents = await RelayStudent.find(relayFilter);
 
-    res.setHeader("Content-Disposition", 'attachment; filename="students_data.xlsx"');
-    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    const combinedData = [];
 
-    res.send(buffer);
+    // Individual Students Loop
+    for (let entry of students) {
+      const student1 = entry.students.student1;
+      const jersey1 = await Jersey.findOne({ urn: student1.urn });
+
+      combinedData.push({
+        Event: entry.event,
+        College: entry.collegeName,
+        Name: student1.name,
+        URN: student1.urn,
+        Gmail: student1.gmail,
+        FatherName: student1.fatherName,
+        Age: student1.age,
+        PhoneNumber: student1.phoneNumber,
+        JerseyNumber: jersey1 ? jersey1.jerseyNumber : "N/A",
+        ImageURL: student1.idCard || "",   // ✅ Assuming idCard = Image URL
+        Type: "Individual Event",
+      });
+
+      if (entry.students.student2 && entry.students.student2.name) {
+        const student2 = entry.students.student2;
+        const jersey2 = await Jersey.findOne({ urn: student2.urn });
+
+        combinedData.push({
+          Event: entry.event,
+          College: entry.collegeName,
+          Name: student2.name,
+          URN: student2.urn,
+          Gmail: student2.gmail,
+          FatherName: student2.fatherName,
+          Age: student2.age,
+          PhoneNumber: student2.phoneNumber,
+          JerseyNumber: jersey2 ? jersey2.jerseyNumber : "N/A",
+          ImageURL: student2.idCard || "",  // ✅ Assuming idCard = Image URL
+          Type: "Individual Event",
+        });
+      }
+    }
+
+    // Relay Students Loop
+    for (let team of relayStudents) {
+      for (let student of team.students) {
+        const jersey = await Jersey.findOne({ urn: student.urn });
+
+        combinedData.push({
+          Event: team.event,
+          College: team.collegeName,
+          Name: student.name,
+          URN: student.urn,
+          Gmail: student.gmail,
+          FatherName: student.fatherName,
+          Age: student.age,
+          PhoneNumber: student.phoneNumber,
+          JerseyNumber: jersey ? jersey.jerseyNumber : "N/A",
+          ImageURL: student.image || "", // ✅ Relay students already have image field
+          Type: "Relay Event",
+        });
+      }
+    }
+
+    if (combinedData.length === 0) {
+      return res.status(404).json({ message: "No data found for the given filters" });
+    }
+
+    const fields = [
+      "Event",
+      "College",
+      "Name",
+      "URN",
+      "Gmail",
+      "FatherName",
+      "Age",
+      "PhoneNumber",
+      "JerseyNumber",
+      "ImageURL",
+      "Type",
+    ];
+
+    const opts = { fields };
+    const parser = new Parser(opts);
+    const csv = parser.parse(combinedData);
+
+    res.header("Content-Type", "text/csv");
+    res.attachment("students_data.csv");
+    res.send(csv);
+
   } catch (error) {
-    console.error("Export Error:", error);
-    res.status(500).json({ success: false, message: "Server error" });
+    console.error("Export error:", error);
+    res.status(500).json({ message: "Failed to export data" });
   }
 });
+
+module.exports = router;
+
 
 // ✅ Multer + Cloudinary Setup
 const storage = new CloudinaryStorage({
@@ -246,7 +311,7 @@ router.post("/register", authMiddleware, urnValidationMiddleware, uploadFields, 
           fatherName: student1FatherName,
           age: student1age,
           phoneNumber: student1PhoneNumber,
-          image: student1Image,
+          idCard: student1Image,
           jerseyNumber: student1JerseyNumber,
         },
       },
@@ -260,11 +325,12 @@ router.post("/register", authMiddleware, urnValidationMiddleware, uploadFields, 
         fatherName: student2FatherName,
         age: student2age,
         phoneNumber: student2PhoneNumber,
-        image: student2Image,
+        idCard: student2Image,
         jerseyNumber: student2JerseyNumber,
       };
     }
-
+    console.log(student1Image);
+    console.log(student2Image);
     await newStudent.save();
 
     if (!lockDoc) {

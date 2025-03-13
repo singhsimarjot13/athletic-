@@ -12,7 +12,7 @@ const studentSchema = new mongoose.Schema({
 
 const relayStudentSchema = new mongoose.Schema({
   collegeName: { type: String, required: true },
-  event: { type: String, required: true }, // 4x100m or 4x400m
+  event: { type: String, required: true }, // 4x100m or 4x40a0m
   students: [studentSchema], // array of 4 students
 });
 
