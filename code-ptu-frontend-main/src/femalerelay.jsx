@@ -9,6 +9,7 @@ function Relayfemale() {
   const [currentEventIndex, setCurrentEventIndex] = useState(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [urnErrors, setUrnErrors] = useState({});
 
   const navigate = useNavigate();
@@ -18,11 +19,11 @@ function Relayfemale() {
   const femaleRelayEvents = ["4x100m Relay Female", "4x400m Relay Female"];
   const relayEvents = femaleRelayEvents;
   const currentRelayEvent = relayEvents[currentEventIndex];
-
+  const apiUrl = import.meta.env.VITE_API_URL;
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/user-info", {
+        const res = await axios.get(`${apiUrl}/user-info`, {
           withCredentials: true,
         });
         if (res.data.collegeName) {
@@ -41,7 +42,7 @@ function Relayfemale() {
 
   const handleLogout = async () => {
     try {
-      await axios.get("http://localhost:5000/logout", {
+      await axios.get(`${apiUrl}/logout`, {
         withCredentials: true,
       });
       navigate("/");
@@ -49,7 +50,9 @@ function Relayfemale() {
       console.error("Logout error:", err);
     }
   };
-
+  const handleNavigation = (path) => {
+    navigate(path);
+  };
   const goToNextUnlockedEvent = async () => {
     let nextIndex = currentEventIndex + 1;
 
@@ -57,7 +60,7 @@ function Relayfemale() {
       const event = relayEvents[nextIndex];
       try {
         const res = await axios.get(
-          `http://localhost:5000/relay/relay-status/${event}`,
+          `${apiUrl}/relay/relay-status/${event}`,
           { withCredentials: true }
         );
 
@@ -86,7 +89,7 @@ function Relayfemale() {
     const checkCurrentEventLock = async () => {
       try {
         const res = await axios.get(
-          `http://localhost:5000/relay/relay-status/${currentRelayEvent}`,
+          `${apiUrl}/relay/relay-status/${currentRelayEvent}`,
           { withCredentials: true }
         );
 
@@ -135,7 +138,7 @@ function Relayfemale() {
 
       try {
         const res = await axios.get(
-          `http://localhost:5000/relay/check-urn/${value}`,
+          `${apiUrl}/relay/check-urn/${value}`,
           { withCredentials: true }
         );
 
@@ -166,6 +169,7 @@ function Relayfemale() {
       !student.phoneNumber
     ) {
       alert("All fields are required. Please fill in missing details.");
+      isSubmitting(false);
       return false;
     }
 
@@ -198,7 +202,7 @@ function Relayfemale() {
       }, 2000);
       return;
     }
-
+    setIsSubmitting(true); // ⬅️ Start Loading
     const hasUrnErrors = Object.values(urnErrors).some(
       (error) => error && error.length > 0
     );
@@ -213,7 +217,7 @@ function Relayfemale() {
 
     for (let i = 1; i <= 4; i++) {
       const student = eventData[`student${i}`] || {};
-      if (!validateFields(student)) return;
+      if (!validateFields(student)){      setIsSubmitting(false); return;}
     }
 
     const calculateAge = (dob) => {
@@ -250,7 +254,7 @@ function Relayfemale() {
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/relay/register",
+        `${apiUrl}/relay/register`,
         formData,
         {
           withCredentials: true,
@@ -262,6 +266,7 @@ function Relayfemale() {
       if (result.success) {
         alert(result.message || "Relay Registration Successful!");
         setFormKey((prevKey) => prevKey + 1);
+        window.scrollTo({ top: 0, behavior: "smooth" }); // ⬅️ Scroll to top
         goToNextUnlockedEvent();
       } else {
         alert(result.message || "Relay Registration failed. Please try again.");
@@ -270,11 +275,13 @@ function Relayfemale() {
       console.error("Error submitting relay data:", error);
       alert("Server error. Please try again later.");
     }
+    setIsSubmitting(false);
   };
 
   const handleNext = () => {
     if (currentEventIndex < relayEvents.length - 1) {
       setCurrentEventIndex((prevIndex) => prevIndex + 1);
+      window.scrollTo({ top: 0, behavior: "smooth" }); // ⬅️ Scroll to top
     } else {
       setIsSubmitted(true);
     }
@@ -285,6 +292,7 @@ function Relayfemale() {
       <nav className="navbar">
         <div className="college-name">{collegeName}</div>
         <div className="nav-buttons">
+        <button className="btn btn-primary" onClick={() => handleNavigation("/home")}>Dashboard</button>
           <button
             className="female-register-btn"
             onClick={() => navigate("/relayapp")}
@@ -413,6 +421,7 @@ function Relayfemale() {
                       </div>
                     );
                   })}
+                                    {isSubmitting && <p style={{ color: "blue" }}>Submitting... Please wait.</p>}
                                   <button
                   className="submit-btn"
                   onClick={handleSubmit}
@@ -420,10 +429,10 @@ function Relayfemale() {
                     isLocked ||
                     Object.values(urnErrors).some(
                       (error) => error && error.length > 0
-                    )
+                    ) || isSubmitting
                   }
                 >
-                  Submit & Next
+                   {isSubmitting ? "Submitting..." : "Submit & Next"}
                 </button>
                                   <button className="skip-btn" onClick={handleNext}>
                   Skip & Next

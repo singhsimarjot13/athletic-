@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./admin.css";
-
+const apiUrl = import.meta.env.VITE_API_URL;
 function AdminLogin() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -13,7 +13,7 @@ function AdminLogin() {
     setErrorMessage(""); // Clear previous errors
   
     try {
-      const response = await fetch("http://localhost:5000/admin/adminlogin", {
+      const response = await fetch(`${apiUrl}/admin/adminlogin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include", // Ensure session is sent

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-
+const apiUrl = import.meta.env.VITE_API_URL;
 const CreateUser = () => {
   const [formData, setFormData] = useState({
     collegeName: "",
@@ -15,7 +15,7 @@ const CreateUser = () => {
   // Fetch users from backend
   const fetchUsers = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/user/users", {
+      const res = await axios.get(`${apiUrl}/user/users`, {
         withCredentials: true,
       });
       setUsers(res.data);
@@ -34,14 +34,14 @@ const CreateUser = () => {
       if (formData._id) {
         // Update existing user
         await axios.put(
-          `http://localhost:5000/user/users/${formData._id}`,
+          `${apiUrl}/user/users/${formData._id}`,
           formData,
           { withCredentials: true }
         );
         alert("User Updated Successfully!");
       } else {
         // Create new user
-        await axios.post("http://localhost:5000/user/signup", formData, {
+        await axios.post(`${apiUrl}/user/signup`, formData, {
           withCredentials: true,
         });
         alert("User Created Successfully!");
@@ -60,7 +60,7 @@ const CreateUser = () => {
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this user?")) {
       try {
-        await axios.delete(`http://localhost:5000/user/users/${id}`, {
+        await axios.delete(`${apiUrl}/user/users/${id}`, {
           withCredentials: true,
         });
         alert("User deleted successfully");

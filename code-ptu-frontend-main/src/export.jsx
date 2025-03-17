@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-
+const apiUrl = import.meta.env.VITE_API_URL;
 const ExportPage = () => {
   const [event, setEvent] = useState("");
   const [collegeName, setCollegeName] = useState("");
@@ -7,7 +7,7 @@ const ExportPage = () => {
   const downloadExcel = async () => {
     try {
       const response = await fetch(
-        `http://localhost:5000/student/export?event=${event}&collegeName=${collegeName}`
+        `${apiUrl}/student/export?event=${event}&collegeName=${collegeName}`
       );
 
       if (!response.ok) {

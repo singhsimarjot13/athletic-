@@ -16,7 +16,7 @@ const AdminDashboard = () => {
     fetchJerseyNumbers();
     fetchStudents();
   }, [eventFilter, collegeFilter]);
-
+  const apiUrl = import.meta.env.VITE_API_URL;
   const fetchRelayTeams = async () => {
     try {
       const params = new URLSearchParams();
@@ -24,7 +24,7 @@ const AdminDashboard = () => {
       if (collegeFilter) params.append("collegeName", collegeFilter);
 
       const res = await axios.get(
-        `http://localhost:5000/admin/relay?${params.toString()}`,
+        `${apiUrl}/admin/relay?${params.toString()}`,
         { withCredentials: true }
       );
       if (res.data.success) setRelayTeams(res.data.teams);
@@ -36,7 +36,7 @@ const AdminDashboard = () => {
   const fetchJerseyNumbers = async () => {
     try {
       const res = await axios.get(
-        "http://localhost:5000/admin/jersey-numbers",
+        `${apiUrl}/admin/jersey-numbers`,
         { withCredentials: true }
       );
       if (res.data.success) setJerseyData(res.data.jerseys);
@@ -52,7 +52,7 @@ const AdminDashboard = () => {
       if (collegeFilter) params.append("collegeName", collegeFilter);
 
       const res = await axios.get(
-        `http://localhost:5000/student/students?${params.toString()}`,
+        `${apiUrl}/student/students?${params.toString()}`,
         { withCredentials: true }
       );
       if (res.data.success) setStudents(res.data.students);
@@ -94,7 +94,7 @@ const AdminDashboard = () => {
       {/* Page Content */}
       <div className="container-fluid flex-grow-1 py-4">
         <h2 className="text-center fw-bold text-dark mb-4">
-          Relay Teams & Jersey Numbers
+          Events & Jersey Numbers
         </h2>
 
         {/* Filters */}

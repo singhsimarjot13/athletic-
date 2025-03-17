@@ -10,12 +10,15 @@ function Relay() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [urnErrors, setUrnErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const [formKey, setFormKey] = useState(0);
 
+  const apiUrl = import.meta.env.VITE_API_URL;
 
-
-
+  const handleNavigation = (path) => {
+    navigate(path);
+  };
 
   const maleRelayEvents = ["4x100m Relay", "4x400m Relay"];
   const relayEvents = maleRelayEvents;
@@ -24,7 +27,7 @@ function Relay() {
 
   // Fetch college name on mount
   useEffect(() => {
-    fetch("http://localhost:5000/user-info", { credentials: "include" })
+    fetch(`${apiUrl}/user-info`, { credentials: "include" })
       .then((res) => res.json())
       .then((data) => {
         if (data.collegeName) {
@@ -44,7 +47,7 @@ function Relay() {
       const event = relayEvents[nextIndex];
       try {
         const res = await axios.get(
-          `http://localhost:5000/relay/relay-status/${event}`,
+          `${apiUrl}/relay/relay-status/${event}`,
           { withCredentials: true }
         );
 
@@ -74,7 +77,7 @@ function Relay() {
     const checkCurrentEventLock = async () => {
       try {
         const res = await axios.get(
-          `http://localhost:5000/relay/relay-status/${currentRelayEvent}`,
+          `${apiUrl}/relay/relay-status/${currentRelayEvent}`,
           { withCredentials: true }
         );
 
@@ -95,7 +98,7 @@ function Relay() {
   }, [currentRelayEvent]);
 
   const handleLogout = async () => {
-    await fetch("http://localhost:5000/logout", { credentials: "include" });
+    await fetch(`${apiUrl}/logout`, { credentials: "include" });
     navigate("/");
   };
 
@@ -135,7 +138,7 @@ function Relay() {
       // Backend Duplicate Check
       try {
         const res = await axios.get(
-          `http://localhost:5000/relay/check-urn/${value}`,
+          `${apiUrl}/relay/check-urn/${value}`,
           { withCredentials: true }
         );
 
@@ -167,6 +170,7 @@ function Relay() {
       !student.idCard
     ) {
       alert("All fields are required. Please fill in missing details.");
+      isSubmitting(false);
       return false;
     }
 
@@ -199,7 +203,7 @@ function Relay() {
       }, 2000);
       return;
     }
-
+    setIsSubmitting(true); // ⬅️ Start Loading
     const hasUrnErrors = Object.values(urnErrors).some(
       (error) => error && error.length > 0
     );
@@ -214,7 +218,7 @@ function Relay() {
     // Validate all 4 students
     for (let i = 1; i <= 4; i++) {
       const student = eventData[`student${i}`] || {};
-      if (!validateFields(student)) return;
+      if (!validateFields(student)){      setIsSubmitting(false); return;} // ⬅️ Fix
     }
 
     const calculateAge = (dob) => {
@@ -250,7 +254,7 @@ function Relay() {
     }
 
     try {
-      const response = await fetch("http://localhost:5000/relay/register", {
+      const response = await fetch(`${apiUrl}/relay/register`, {
         method: "POST",
         body: formData,
         credentials: "include",
@@ -263,6 +267,7 @@ function Relay() {
         } else {
           alert(result.message || "Relay Registration Successful!");
           setFormKey((prevKey) => prevKey + 1);
+          window.scrollTo({ top: 0, behavior: "smooth" }); // ⬅️ Scroll to top
         }
 
         goToNextUnlockedEvent();
@@ -277,6 +282,7 @@ function Relay() {
       console.error("Error:", error);
       alert("Server error. Please try again later.");
     }
+    setIsSubmitting(false);
   };
 
   return (
@@ -284,6 +290,7 @@ function Relay() {
       <nav className="navbar">
         <div className="college-name">{collegeName}</div>
         <div className="nav-buttons">
+        <button className="btn btn-primary" onClick={() => handleNavigation("/home")}>Dashboard</button>
           <button
             className="female-register-btn"
             onClick={() =>
@@ -417,6 +424,7 @@ function Relay() {
                       />
                     </div>
                   ))}
+                                    {isSubmitting && <p style={{ color: "blue" }}>Submitting... Please wait.</p>}
                                   <button
                   className="submit-btn"
                   onClick={handleSubmit}
@@ -424,10 +432,10 @@ function Relay() {
                     isLocked ||
                     Object.values(urnErrors).some(
                       (error) => error && error.length > 0
-                    )
+                    ) || isSubmitting
                   }
                 >
-                  Submit & Next
+                   {isSubmitting ? "Submitting..." : "Submit & Next"}
                 </button>
                                   <button className="skip-btn" onClick={goToNextUnlockedEvent}>
                   Skip & Next

@@ -11,6 +11,7 @@ function SportsAppfield() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [urnWarnings, setUrnWarnings] = useState({});
   const [urnMatchWarning, setUrnMatchWarning] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const [formKey, setFormKey] = useState(0);
   const resetForm = () => {
@@ -24,9 +25,11 @@ function SportsAppfield() {
     // Change the form key to force a re-render
     setFormKey((prevKey) => prevKey + 1);
 };
+const handleNavigation = (path) => {
+  navigate(path);
+};
 
-
-
+const apiUrl = import.meta.env.VITE_API_URL;
 
 
   const maleEvents = [
@@ -44,7 +47,7 @@ function SportsAppfield() {
 
   // Fetch college info on mount
   useEffect(() => {
-    fetch("http://localhost:5000/user-info", { credentials: "include" })
+    fetch(`${apiUrl}/user-info`, { credentials: "include" })
       .then((res) => res.json())
       .then((data) => {
         if (data.collegeName) {
@@ -65,7 +68,7 @@ function SportsAppfield() {
       const event = events[nextIndex];
       try {
         const res = await axios.get(
-          `http://localhost:5000/student/event-status/${event}`,
+          `${apiUrl}/student/event-status/${event}`,
           { withCredentials: true }
         );
 
@@ -81,8 +84,6 @@ function SportsAppfield() {
         nextIndex++;
       }
     }
-
-    setIsSubmitted(true);
   };
 
   // Check lock status for current event
@@ -95,7 +96,7 @@ function SportsAppfield() {
     const checkCurrentEventLock = async () => {
       try {
         const res = await axios.get(
-          `http://localhost:5000/student/event-status/${currentEvent}`,
+          `${apiUrl}/student/event-status/${currentEvent}`,
           { withCredentials: true }
         );
 
@@ -116,7 +117,7 @@ function SportsAppfield() {
   }, [currentEvent]);
 
   const handleLogout = async () => {
-    await fetch("http://localhost:5000/logout", { credentials: "include" });
+    await fetch(`${apiUrl}/logout`, { credentials: "include" });
     navigate("/");
   };
 
@@ -131,7 +132,7 @@ function SportsAppfield() {
 
     try {
       const res = await axios.get(
-        `http://localhost:5000/student/registration-count/${urn}`,
+        `${apiUrl}/student/registration-count/${urn}`,
         { withCredentials: true }
       );
       const count = res.data.count;
@@ -184,6 +185,7 @@ function SportsAppfield() {
 
     if (urn1 && urn2 && urn1 === urn2) {
       setUrnMatchWarning("Student 1 and Student 2 cannot have the same URN.");
+      setIsSubmitting(false);
     } else {
       setUrnMatchWarning("");
     }
@@ -200,6 +202,7 @@ function SportsAppfield() {
       !student.idCard
     ) {
       alert("All fields are required. Please fill in missing details.");
+      isSubmitting(false);
       return false;
     }
 
@@ -222,7 +225,7 @@ function SportsAppfield() {
     }
 
     const res = await axios.get(
-      `http://localhost:5000/student/registration-count/${student.urn}`,
+      `${apiUrl}/student/registration-count/${student.urn}`,
       { withCredentials: true }
     );
 
@@ -260,7 +263,7 @@ function SportsAppfield() {
       }, 2000);
       return;
     }
-
+    setIsSubmitting(true); // ⬅️ Start Loading
     const currentEvent = events[currentEventIndex];
     const student1 = athleteData[currentEvent]?.student1 || {};
     const student2 = athleteData[currentEvent]?.student2 || {};
@@ -268,6 +271,7 @@ function SportsAppfield() {
     // Final URN check before submission
     if (student1.urn && student2.urn && student1.urn === student2.urn) {
       alert("Student 1 and Student 2 cannot have the same URN.");
+      setIsSubmitted(false);
       return;
     }
 
@@ -320,7 +324,7 @@ function SportsAppfield() {
     }
 
     try {
-      const response = await fetch("http://localhost:5000/student/register", {
+      const response = await fetch(`${apiUrl}/student/register`, {
         method: "POST",
         body: formData,
         credentials: "include",
@@ -340,6 +344,7 @@ function SportsAppfield() {
       console.error("Error:", error);
       alert("Server error. Please try again later.");
     }
+    setIsSubmitting(false);
   };
 
   const handleNext = () => {
@@ -347,7 +352,8 @@ function SportsAppfield() {
       resetForm();
       setTimeout(() => {
         setCurrentEventIndex((prevIndex) => prevIndex + 1);
-    }, 1000); 
+        window.scrollTo({ top: 0, behavior: "smooth" }); // ⬅️ Scroll to top
+    }, 500); 
       
     } else {
       setIsSubmitted(true);
@@ -363,6 +369,7 @@ function SportsAppfield() {
       <nav className="navbar">
         <div className="college-name">{collegeName}</div>
         <div className="nav-buttons">
+        <button className="btn btn-primary" onClick={() => handleNavigation("/home")}>Dashboard</button>
           <button
             className="female-register-btn"
             onClick={() =>
@@ -504,13 +511,11 @@ function SportsAppfield() {
                       handleInputChange(currentEvent, "student2", "idCard", e.target.files[0])
                     }
                   />
-                <button
-                  className="submit-btn"
-                  onClick={handleSubmit}
-                  disabled={submitDisabled}
-                >
-                  Submit & Next
-                </button>
+                  {isSubmitting && <p style={{ color: "blue" }}>Submitting... Please wait.</p>}
+
+<button className="submit-btn" onClick={handleSubmit} disabled={submitDisabled || isSubmitting}>
+  {isSubmitting ? "Submitting..." : "Submit & Next"}
+</button>
                  <button className="skip-btn" onClick={handleNext}>
                   Skip & Next
                 </button>

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./SportsApp.css";
 import axios from "axios";
-
+const apiUrl = import.meta.env.VITE_API_URL;
 function SportsAppfemalefields() {
   const [collegeName, setCollegeName] = useState("Loading...");
   const [athleteData, setAthleteData] = useState({});
@@ -10,6 +10,7 @@ function SportsAppfemalefields() {
   const [isLocked, setIsLocked] = useState(false);
   const [currentEventIndex, setCurrentEventIndex] = useState(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const [formKey, setFormKey] = useState(0);
   const resetForm = () => {
@@ -23,7 +24,9 @@ function SportsAppfemalefields() {
     // Change the form key to force a re-render
     setFormKey((prevKey) => prevKey + 1);
 };
-
+const handleNavigation = (path) => {
+  navigate(path);
+};
 
 
   const femaleEvents = [
@@ -42,7 +45,7 @@ function SportsAppfemalefields() {
   const currentEvent = events[currentEventIndex];
 
   useEffect(() => {
-    fetch("http://localhost:5000/user-info", { credentials: "include" })
+    fetch(`${apiUrl}/user-info`, { credentials: "include" })
       .then((res) => res.json())
       .then((data) => {
         if (data.collegeName) {
@@ -55,7 +58,7 @@ function SportsAppfemalefields() {
   }, [navigate]);
 
   const handleLogout = async () => {
-    await fetch("http://localhost:5000/logout", { credentials: "include" });
+    await fetch(`${apiUrl}/logout`, { credentials: "include" });
     navigate("/");
   };
 
@@ -66,7 +69,7 @@ function SportsAppfemalefields() {
       const event = events[nextIndex];
       try {
         const res = await axios.get(
-          `http://localhost:5000/student/event-status/${event}`,
+          `${apiUrl}/student/event-status/${event}`,
           { withCredentials: true }
         );
 
@@ -95,7 +98,7 @@ function SportsAppfemalefields() {
     const checkCurrentEventLock = async () => {
       try {
         const res = await axios.get(
-          `http://localhost:5000/student/event-status/${currentEvent}`,
+          `${apiUrl}/student/event-status/${currentEvent}`,
           { withCredentials: true }
         );
 
@@ -126,6 +129,7 @@ function SportsAppfemalefields() {
       !student1.idCard
     ) {
       alert("All fields are required. Please fill in missing details.");
+      isSubmitting(false);
       return false;
     }
 
@@ -157,7 +161,7 @@ function SportsAppfemalefields() {
 
     try {
       const res = await axios.get(
-        `http://localhost:5000/student/registration-count/${urn}`,
+        `${apiUrl}/student/registration-count/${urn}`,
         { withCredentials: true }
       );
 
@@ -180,9 +184,10 @@ function SportsAppfemalefields() {
         ...prev,
         sameUrn: "Student 1 and Student 2 cannot have the same URN!",
       }));
+      setIsSubmitting(false);
     } else {
       setUrnWarnings((prev) => {
-        const { sameUrn, ...rest } = prev;
+        const {  ...rest } = prev;
         return rest;
       });
     }
@@ -234,7 +239,7 @@ function SportsAppfemalefields() {
       }, 2000);
       return;
     }
-
+    setIsSubmitting(true); // ⬅️ Start Loading
     const currentEvent = events[currentEventIndex];
     const student1 = athleteData[currentEvent]?.student1 || {};
     const student2 = athleteData[currentEvent]?.student2 || {};
@@ -291,7 +296,7 @@ function SportsAppfemalefields() {
     }
 
     try {
-      const response = await fetch("http://localhost:5000/student/register", {
+      const response = await fetch(`${apiUrl}/student/register`, {
         method: "POST",
         body: formData,
         credentials: "include",
@@ -310,6 +315,7 @@ function SportsAppfemalefields() {
       console.error("Error:", error);
       alert("Server error. Please try again later.");
     }
+    setIsSubmitting(false);
   };
 
   const handleNext = () => {
@@ -317,6 +323,7 @@ function SportsAppfemalefields() {
       resetForm();
       setTimeout(() => {
           setCurrentEventIndex((prevIndex) => prevIndex + 1);
+          window.scrollTo({ top: 0, behavior: "smooth" }); // ⬅️ Scroll to top
       }, 100);
     } else {
       setIsSubmitted(true);
@@ -328,6 +335,7 @@ function SportsAppfemalefields() {
       <nav className="navbar">
         <div className="college-name">{collegeName}</div>
         <div className="nav-buttons">
+        <button className="btn btn-primary" onClick={() => handleNavigation("/home")}>Dashboard</button>
           <button
             className="female-register-btn"
             onClick={() =>
@@ -541,13 +549,11 @@ function SportsAppfemalefields() {
                   {urnWarnings.sameUrn && (
                     <p style={{ color: "red" }}>{urnWarnings.sameUrn}</p>
                   )}
-                                  <button
-                  className="submit-btn"
-                  onClick={handleSubmit}
-                  disabled={isLocked}
-                >
-                  Submit & Next
-                </button>
+                  {isSubmitting && <p style={{ color: "blue" }}>Submitting... Please wait.</p>}
+
+<button className="submit-btn" onClick={handleSubmit} disabled={isLocked || isSubmitting}>
+  {isSubmitting ? "Submitting..." : "Submit & Next"}
+</button>
                                   <button className="skip-btn" onClick={handleNext}>
                   Skip & Next
                 </button>

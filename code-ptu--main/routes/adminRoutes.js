@@ -13,7 +13,7 @@ router.get("/admin", (req, res) => {
 router.post("/adminlogin", (req, res) => {
   const { username, password } = req.body;
 
-  if (username === "admin" && password === "admin123") {
+  if (username === process.env.USERNAME_ADMIN && password === process.env.PASSWORD) {
     req.session.admin = true;
     req.session.allowSignup = false;
 
